@@ -1,6 +1,6 @@
 package grig.hxal;
 
-interface Instrument
+@:autoBuild(grig.hxal.Transpiler.buildInstrument())
+class Instrument
 {
-    public function process():Void;
 }

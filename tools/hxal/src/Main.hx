@@ -6,6 +6,6 @@ class Main
 {
     static function main()
     {
-        var instrument = new Sine();
+        // var instrument = new Sine();
     }
 }

@@ -2,17 +2,13 @@ package grig.hxal;
 
 import grig.hxal.Instrument;
 
-@:build(grig.hxal.Transpiler.buildInstrument())
-class Sine implements Instrument
+class Sine extends Instrument
 {
-    @mutable var phase:Float;
+    @mutable var phase:Blorp;
 
     public function process()
     {
         var data:Int = 0;
-    }
-
-    public function new()
-    {
+        phase += 0.1;
     }
 }

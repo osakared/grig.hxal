@@ -20,6 +20,7 @@ EARLY STAGE OF DEVELOPMENT. Ignore if you are expecting something you can use ri
 * Err on the side of simple and works, rather than being clever
 * Designed to build atop other's work, in keeping with the general philosophy of haxe.
 * All errors should be caught by VSCode and others' error checking. This is just haxe code, after all!
+* Per frame and per midi event interface, which easily transforms to soul and, with hxal adding loops, to all the other environments
 
 ## Dual Code Paths
 
@@ -35,7 +36,7 @@ graph TD;
     cpp-.->standalone(standalone)
     cpp-.->vst(vst)
     cpp-.->lv2(lv2)
-    cpp-.->plain(c functions or c++ classes source code)
+    cpp-.->plain(source code)
     cpp-.->dotdotdot(...)
     haxe-->std[normal haxe compilation path]
 ```

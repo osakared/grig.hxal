@@ -1,14 +1,25 @@
 package grig.hxal;
 
-import grig.hxal.Instrument;
+import grig.hxal.Node;
 
-class Sine extends Instrument
+@name("Sine Synth", 'en')
+@version("0.0.1")
+class Sine extends Node
 {
-    @mutable var phase:Blorp;
+    @input @name("OSC1 Frequency") var frequency1:Float;
+    @input @name("OSC2 Frequency") var frequency2:Float;
 
-    public function process()
+    @mutable var phase:Float;
+
+    // public function onNoteOn():Void
+    // {
+
+    // }
+
+    public function onSample():Float
     {
         var data:Int = 0;
         phase += 0.1;
+        return 0.0;
     }
 }

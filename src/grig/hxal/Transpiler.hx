@@ -8,7 +8,16 @@ import sys.io.File;
 
 class Transpiler
 {
+    private static inline var duplicateCategoryErrorMessage = 'hxal: Only one of the following categories can be specified per variable: input, output, parameter';
+
     #if macro
+    private static function verifyNoParams(metadataEntry:MetadataEntry):Void
+    {
+        if (metadataEntry.params != null && metadataEntry.params.length > 0) {
+            Context.error('hxal: Metadata ${metadataEntry.name} doesn\'t support parameters', Context.currentPos());
+        }
+    }
+
     public static function buildNode():Array<haxe.macro.Field>
     {
         var localClass:Null<Ref<ClassType>> = Context.getLocalClass();
@@ -38,24 +47,52 @@ class Transpiler
         for (field in fields) {
             switch (field.kind) {
                 case FVar(complexType, expr):
+                    var nodeVar = new NodeVar();
                     if (complexType == null) {
                         Context.error("hxal: Unspecified type in declaration not supported", Context.currentPos());
                     }
-                    var mutable:Bool = false;
-                    var type:VarType = NodeDescriptor.getType(complexType);
+                    nodeVar.name = field.name;
+                    nodeVar.type = NodeDescriptor.getType(complexType);
+                    nodeVar.expr = expr;
                     for (meta in field.meta) {
-
+                        switch meta.name {
+                            case 'mutable':
+                                verifyNoParams(meta);
+                                nodeVar.mutable = true;
+                            case 'input':
+                                verifyNoParams(meta);
+                                if (nodeVar.category != CClass) {
+                                    Context.error(duplicateCategoryErrorMessage, Context.currentPos());
+                                }
+                                nodeVar.category = CInput;
+                            case 'output':
+                                verifyNoParams(meta);
+                                if (nodeVar.category != CClass) {
+                                    Context.error(duplicateCategoryErrorMessage, Context.currentPos());
+                                }
+                                nodeVar.category = COutput;
+                            case 'parameter':
+                                verifyNoParams(meta);
+                                if (nodeVar.category != CClass) {
+                                    Context.error(duplicateCategoryErrorMessage, Context.currentPos());
+                                }
+                                nodeVar.category = CParameter;
+                            case 'name':
+                                var nameString = NodeDescriptor.getNodeString('name', meta);
+                                nodeVar.uiName.push(nameString);
+                            case 'unit':
+                                var unitString = NodeDescriptor.getString('unit', meta);
+                                nodeVar.uiUnit = unitString;
+                        }
                     }
-                    trace('var');
+                    descriptor.classVars.push(nodeVar);
                 case FFun(fun):
                     trace('fun');
                 case FProp(_, _):
                     Context.error("hxal: Properties not supported", Context.currentPos());
             }
-            // trace(field.kind);
-            // trace(field.meta);
         }
-        // trace(descriptor.version);
+        // trace(descriptor.classVars);
         // File.saveContent('tst.c', '#include <stdio.h>\n\nint main() {\nprintf("hello, world\\n");\nreturn 0;}\n');
         return []; // return modified fields back for haxe pathway, nothing for translation pathway and hooks for calling into, e.g., dll for split code mode
     }

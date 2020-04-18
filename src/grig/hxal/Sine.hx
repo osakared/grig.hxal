@@ -6,8 +6,8 @@ import grig.hxal.Node;
 @version("0.0.1")
 class Sine extends Node
 {
-    @input @name("OSC1 Frequency") var frequency1:Float;
-    @input @name("OSC2 Frequency") var frequency2:Float;
+    @parameter @name("OSC1 Frequency", 'en') var frequency1:Float;
+    @parameter @name("OSC2 Frequency", 'en') var frequency2:Float;
 
     @mutable var phase:Float;
 

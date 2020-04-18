@@ -29,27 +29,32 @@ enum VarType
 
 enum Category
 {
-    CInput;
-    COutput;
+    CInput; // for modular synth modules 
+    COutput; // for modular synth modules
     CParameter;
     CClass;
-}
-
-typedef Var = {
-	var name:String;
-    var type:VarType;
-    var mutable:Bool;
-	var category:Category;
-    var expr:Null<ExprDef>;
-    var uiName:Null<String>;
-    var uiUnit:Null<String>;
-    // var uiMin:Null<Float>;
-    // var uiMax:Null<Float>;
 }
 
 typedef NodeString = {
     var text:String;
     var lang:String; // ISO 639-1 language code
+}
+
+class NodeVar
+{
+	public var name:String;
+    public var type:VarType;
+    public var mutable:Bool = false;
+	public var category:Category = CClass;
+    public var expr:Null<Expr>;
+    public var uiName = new Array<NodeString>();
+    public var uiUnit:String;
+    // public var uiMin:Null<Float>;
+    // public var uiMax:Null<Float>;
+
+    public function new()
+    {
+    }
 }
 
 /**
@@ -62,7 +67,7 @@ class NodeDescriptor
     public var version:String;
     public var manufacturer:String;
     // should I add enum ability? probably
-    public var classVars = new Array<Var>();
+    public var classVars = new Array<NodeVar>();
 
     public function new()
     {

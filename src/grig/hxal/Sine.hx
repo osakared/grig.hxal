@@ -11,12 +11,14 @@ class Sine extends Node
 
     @mutable var phase:Float;
 
+    var gain:Array<Sample, 2>;
+
     // public function onNoteOn():Void
     // {
 
     // }
 
-    public function onSample():Float
+    public function onAudioFrame():Array<Sample>
     {
         var data:Int = 0;
         phase += 0.1;

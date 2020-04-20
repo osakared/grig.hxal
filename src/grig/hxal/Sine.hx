@@ -13,6 +13,8 @@ class Sine extends Node
 
     var gain:Array<Sample, 2>;
 
+    // var multiplier:Array<Int16, 2>;
+
     // public function onNoteOn():Void
     // {
 

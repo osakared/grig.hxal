@@ -8,6 +8,7 @@ class Sine extends Node
 {
     @parameter @name("OSC1 Frequency", 'en') var frequency1:Float;
     @parameter @name("OSC2 Frequency", 'en') var frequency2:Float;
+    @parameter var approximate:Bool;
 
     @mutable var phase:Float;
 

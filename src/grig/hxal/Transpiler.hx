@@ -21,8 +21,7 @@ class Transpiler
         var contents = CppGenerator.generateLogueProject(descriptor);
         trace('\n\n$contents\n');
 
-        // trace(descriptor.classVars);
-        // File.saveContent('tst.c', '#include <stdio.h>\n\nint main() {\nprintf("hello, world\\n");\nreturn 0;}\n');
+        // File.saveContent('tst.c', contents);
         return []; // return modified fields back for haxe pathway, nothing for translation pathway and hooks for calling into, e.g., dll for split code mode
     }
     #end

@@ -45,11 +45,12 @@ class NodeVar
 {
 	public var name:String;
     public var type:VarType;
-    public var mutable:Bool = false;
+    public var mutable:Bool = true;
 	public var category:Category = CClass;
     public var expr:Null<Expr>;
     public var uiName = new Array<NodeString>();
     public var uiUnit:String;
+    public var isStatic:Bool = false;
     // public var uiMin:Null<Float>;
     // public var uiMax:Null<Float>;
 
@@ -86,6 +87,143 @@ class NodeDescriptor
             Context.error('hxal: Metadata ${metadataEntry.name} doesn\'t support parameters', Context.currentPos());
         }
     }
+
+    private static function verifySupportedVarAccess(nodeVar:NodeVar, accesses:Array<haxe.macro.Access>)
+    {
+        for (access in accesses) {
+            switch access {
+                case APublic:
+                    Context.error('hxal: Access modifiers not supported', Context.currentPos());
+                case APrivate:
+                    Context.error('hxal: Access modifiers not supported', Context.currentPos());
+                case AStatic:
+                    nodeVar.isStatic = true;
+                case AOverride:
+                    Context.error('hxal: oo features such as override not supported', Context.currentPos());
+                case ADynamic:
+                    Context.error('hxal: dynamic members not supported', Context.currentPos());
+                case AInline:
+                    Context.error('hxal: inline not supported', Context.currentPos());
+                case AMacro:
+                    Context.error('hxal: macro not supported', Context.currentPos());
+                case AFinal:
+                    if (nodeVar.expr == null) {
+                        Context.error('hxal: final vars must specify an expression to initialize', Context.currentPos());
+                    }
+                    nodeVar.mutable = false;
+                case AExtern:
+                    Context.error('hxal: extern not supported', Context.currentPos());
+            }
+        }
+    }
+
+    public static function isIntType(varType:VarType):Bool
+    {
+        return switch varType {
+            case TInt: true;
+            case TUInt: true;
+            case TInt8: true;
+            case TUInt8: true;
+            case TInt16: true;
+            case TUInt16: true;
+            case TInt32: true;
+            case TUInt32: true;
+            case TInt64: true;
+            case TUInt64: true;
+            default: false;
+        }
+    }
+
+    public static function isFloatType(varType:VarType):Bool
+    {
+        return switch varType {
+            case TFloat: true;
+            case TFloat32: true;
+            case TFloat64: true;
+            default: false;
+        }
+    }
+
+    public static function isNumericType(varType:VarType):Bool
+    {
+        return isIntType(varType) || isFloatType(varType) || varType == TSample;
+    }
+
+    private static inline var INCOMPATIBLE_INT_TYPE_ERROR = 'hxal: Incompatible int type assignment';
+
+    private static function checkCanAssignVars(assigneeType:VarType, exprType:VarType)
+    {
+        // Put secondary parts of the check inside the main block so that unhandled checks fall through to else
+        if (assigneeType == TSample) {
+            if (exprType != TSample) Context.error('hxal: Cannot assign non-Sample type to ambiguous Sample type', Context.currentPos());
+        }
+        else if (isIntType(assigneeType)) {
+            if (!isIntType(exprType)) Context.error('hxal: Cannot assign non-integer type to integer variable', Context.currentPos());
+        }
+        else if (isFloatType(assigneeType)) {
+            if (!isNumericType(exprType)) Context.error('hxal: Cannot assign non-numeric type to float variable', Context.currentPos());
+        }
+        else if (assigneeType == TBool) {
+            if (exprType != TBool) Context.error('hxal: Can only assign boolean value to boolean variable', Context.currentPos());
+        }
+        else {
+            Context.error('hxal: Unhandled type assignment $assigneeType, $exprType', Context.currentPos());
+        }
+    }
+
+    private static function checkValidityOfConst(nodeVar:NodeVar, const:haxe.macro.Constant, availableVars:Array<NodeVar>)
+    {
+        if (nodeVar.type == TSample) {
+            Context.error('hxal: Assigning const expression to ambiguous Sample type', Context.currentPos());
+        }
+        switch const {
+            case CInt(v):
+                checkCanAssignVars(nodeVar.type, TInt);
+            case CFloat(f):
+                checkCanAssignVars(nodeVar.type, TFloat);
+            case CString(s, kind):
+                Context.error('hxal: String expressions not supported', Context.currentPos());
+            case CIdent(s):
+                var existingVar:Null<NodeVar> = null;
+                for (availableVar in availableVars) {
+                    if (availableVar.name == s) {
+                        existingVar = availableVar;
+                        break;
+                    }
+                }
+                if (existingVar == null) {
+                    Context.error('hxal: Undeclared variable $s', Context.currentPos());
+                }
+                checkCanAssignVars(nodeVar.type, existingVar.type);
+            case CRegexp(r, opt):
+                Context.error('hxal: regexp not supported', Context.currentPos());
+        }
+    }
+
+    private static function checkValidityOfClassInitializationExpression(nodeVar:NodeVar, availableVars:Array<NodeVar>)
+    {
+        if (nodeVar.expr == null) return;
+        switch nodeVar.expr.expr {
+            case EConst(c):
+                checkValidityOfConst(nodeVar, c, availableVars);
+            default:
+                Context.error('hxal: Only const expressions supported in member initialization', Context.currentPos());
+        }
+    }
+
+    private static function checkForClashes(fields:Array<Field>)
+    {
+        for (i in 0...fields.length) {
+            for (j in 0...fields.length) {
+                if (i == j) continue;
+                var field = fields[i];
+                var otherField = fields[j];
+                if (field.name == otherField.name) {
+                    Context.error('hxal: Duplicate variable: ${field.name}', Context.currentPos());
+                }
+            }
+        }
+    }
     
     public static function fromClassType(classType:ClassType):NodeDescriptor
     {
@@ -120,11 +258,9 @@ class NodeDescriptor
                     nodeVar.name = field.name;
                     nodeVar.type = NodeDescriptor.getType(complexType);
                     nodeVar.expr = expr;
+                    verifySupportedVarAccess(nodeVar, field.access);
                     for (meta in field.meta) {
                         switch meta.name {
-                            case 'mutable':
-                                verifyNoParams(meta);
-                                nodeVar.mutable = true;
                             case 'input':
                                 verifyNoParams(meta);
                                 if (nodeVar.category != CClass) {
@@ -158,6 +294,10 @@ class NodeDescriptor
                     Context.error("hxal: Properties not supported", Context.currentPos());
             }
         }
+        for (classVar in descriptor.classVars) {
+            checkValidityOfClassInitializationExpression(classVar, descriptor.classVars);
+        }
+        checkForClashes(fields);
         return descriptor;
     }
 
